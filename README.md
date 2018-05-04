@@ -110,8 +110,8 @@ On the other hand, you most certainly do not want to include the debugging
 capabilities within the `.wasm` binary you ship in production because of size
 concerns and the associated network costs. But bugs happen in production, and
 you might want to use a stepping debugger with your live production code base,
-or apply debugging information to stack traces captured via telemetry offline, a
-la [Sentry](https://sentry.io/welcome/).
+or apply debugging information to stack traces captured via telemetry and then
+processed offline, a la [Sentry](https://sentry.io/welcome/).
 
 ### 1.4. Must be compact on disk and over the network
 
