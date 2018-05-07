@@ -16,12 +16,13 @@ Is this document missing something?
 - [0. Preface](#0-preface)
 - [1. General Requirements](#1-general-requirements)
   - [1.1. Must be future extensible](#11-must-be-future-extensible)
-  - [1.2. Must be queryable without running the debuggee program](#12-must-be-queryable-without-running-the-debuggee-program)
-  - [1.3. Must be embeddable within the WebAssembly](#13-must-be-embeddable-within-the-webassembly)
-  - [1.4. Must be separable from the WebAssembly](#14-must-be-separable-from-the-webassembly)
-  - [1.4. Must be compact on disk and over the network](#14-must-be-compact-on-disk-and-over-the-network)
-  - [1.5. Should be compact in memory](#15-should-be-compact-in-memory)
-  - [1.6. Should be fast to consume, generate, and manipulate](#16-should-be-fast-to-consume-generate-and-manipulate)
+  - [1.2. Must be embedder agnostic](#12-must-be-embedder-agnostic)
+  - [1.3. Must be queryable without running the debuggee program](#13-must-be-queryable-without-running-the-debuggee-program)
+  - [1.4. Must be embeddable within the WebAssembly](#14-must-be-embeddable-within-the-webassembly)
+  - [1.5. Must be separable from the WebAssembly](#15-must-be-separable-from-the-webassembly)
+  - [1.6. Must be compact on disk and over the network](#16-must-be-compact-on-disk-and-over-the-network)
+  - [1.7. Should be compact in memory](#17-should-be-compact-in-memory)
+  - [1.8. Should be fast to consume, generate, and manipulate](#18-should-be-fast-to-consume-generate-and-manipulate)
 - [2. Required Capabilities](#2-required-capabilities)
   - [2.1. Locations](#21-locations)
     - [2.1.1. Must support querying the original source location for a given generated code location](#211-must-support-querying-the-original-source-location-for-a-given-generated-code-location)
@@ -84,7 +85,13 @@ capabilities over time, as we add functionality. For example, we might initially
 ship without support for describing packed struct types, but we must not
 preclude ourselves from ever supporting them.
 
-### 1.2. Must be queryable without running the debuggee program
+### 1.2. Must be embedder agnostic
+
+The debugging capabilities must not be specific to any single kind of embedder
+or domain. For example, the debugging capabilities must not assume that the
+embedder is a Web browser.
+
+### 1.3. Must be queryable without running the debuggee program
 
 For example, a CLI code size profiler must be able to consume information about
 inlined functions or generic function monomorphization without running the
@@ -94,7 +101,7 @@ that is composing two wasm object files must not have to run the incomplete
 programs contained in the object files in order to merge their debugging
 capabilities.
 
-### 1.3. Must be embeddable within the WebAssembly
+### 1.4. Must be embeddable within the WebAssembly
 
 For ease of development, the debugging capabilities must be embeddable within a
 custom section or sections of the debuggee program's `.wasm` binary. This avoids
@@ -104,7 +111,7 @@ other and breaking relative references between them.
 It is common to embed source maps as a data URL within `//# sourceMappingURL`
 pragmas by base64 encoding them.
 
-### 1.4. Must be separable from the WebAssembly
+### 1.5. Must be separable from the WebAssembly
 
 On the other hand, you most certainly do not want to include the debugging
 capabilities within the `.wasm` binary you ship in production because of size
@@ -113,7 +120,7 @@ you might want to use a stepping debugger with your live production code base,
 or apply debugging information to stack traces captured via telemetry and then
 processed offline, a la [Sentry](https://sentry.io/welcome/).
 
-### 1.4. Must be compact on disk and over the network
+### 1.6. Must be compact on disk and over the network
 
 There is so much information that a tool might query for, on the order of the
 debuggee program itself. Much of this information is regular and
@@ -123,7 +130,7 @@ size. The current source map specification is in its third revision, and each
 revision has focused on making the format more dense. Empirically, relying on
 general compression algorithms has not been enough.
 
-### 1.5. Should be compact in memory
+### 1.7. Should be compact in memory
 
 Ideally only portions of the debugging capabilities are necessary to load in
 memory at any given time. E.g. if the debuggee program consisted of multiple
@@ -133,7 +140,7 @@ query (e.g. finding the original source location for a generated code location)
 should not require loading the full debugging capabilities for the whole
 debuggee program.
 
-### 1.6. Should be fast to consume, generate, and manipulate
+### 1.8. Should be fast to consume, generate, and manipulate
 
 A fast tool provides a better user experience than a slow tool.
 
