@@ -28,13 +28,14 @@ Is this document missing something?
     - [2.1.1. Must support querying the original source location for a given generated code location](#211-must-support-querying-the-original-source-location-for-a-given-generated-code-location)
     - [2.1.2. Must support querying the generated code location(s) for a given original source location](#212-must-support-querying-the-generated-code-locations-for-a-given-original-source-location)
     - [2.1.3. Must support enumerating all bidirectional mappings between original source and generated code locations](#213-must-support-enumerating-all-bidirectional-mappings-between-original-source-and-generated-code-locations)
-  - [2.2 Inlined Functions](#22-inlined-functions)
+  - [2.2. Inlined Functions](#22-inlined-functions)
     - [2.2.1. Should support querying the inline function frames that are logically on the stack at some generated code location](#221-should-support-querying-the-inline-function-frames-that-are-logically-on-the-stack-at-some-generated-code-location)
     - [2.2.2. Should support enumerating the logical inlined function invocations within a physical function](#222-should-support-enumerating-the-logical-inlined-function-invocations-within-a-physical-function)
-  - [2.3 Types](#23-types)
+  - [2.3. Types](#23-types)
     - [2.3.1. Should support describing scalar types](#231-should-support-describing-scalar-types)
     - [2.3.2. Should support describing compound types](#232-should-support-describing-compound-types)
-  - [2.4 Scopes and Bindings](#24-scopes-and-bindings)
+    - [2.3.3. Should support type-based pretty printing](#233-should-support-type-based-pretty-printing)
+  - [2.4. Scopes and Bindings](#24-scopes-and-bindings)
     - [2.4.1. Should support querying for the scope chain at a given generated code location](#241-should-support-querying-for-the-scope-chain-at-a-given-generated-code-location)
     - [2.4.2. Should support enumerating all bindings within a scope](#242-should-support-enumerating-all-bindings-within-a-scope)
     - [2.4.3. Should support querying a binding's type](#243-should-support-querying-a-bindings-type)
@@ -181,7 +182,7 @@ location ends up needing to be relocated when bundling JavaScript files,
 bundlers will enumerate every mapping and apply relocs directly, rather than
 maintaining a side table for these relocs.
 
-### 2.2 Inlined Functions
+### 2.2. Inlined Functions
 
 #### 2.2.1. Should support querying the inline function frames that are logically on the stack at some generated code location
 
@@ -202,7 +203,7 @@ to code motion by the compiler.
 Code size profilers want to find large functions that are getting aggressively
 inlined many times, and might be causing size bloat.
 
-### 2.3 Types
+### 2.3. Types
 
 #### 2.3.1. Should support describing scalar types
 
@@ -223,7 +224,13 @@ are not actually running the debuggee program, like
 [`ddbug`](https://github.com/gimli-rs/ddbug), which lets you inspect the sizes
 and layouts of a program's types, so you can optimize their representation.
 
-### 2.4 Scopes and Bindings
+#### 2.3.3. Should support type-based pretty printing
+
+A stepping debugger or logging console should be able to pretty print values
+based on each value's type. For example, a string might be represented as a
+pointer and length pair, but should be displayed as its characters.
+
+### 2.4. Scopes and Bindings
 
 #### 2.4.1. Should support querying for the scope chain at a given generated code location
 
