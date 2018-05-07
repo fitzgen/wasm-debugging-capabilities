@@ -189,6 +189,10 @@ A sampling profiler should augment its sampled stack of physical frames with the
 logical frames that were inlined. JavaScript profilers will do this today with
 the help of the JavaScript engine, rather than using debugging capabilities.
 
+The set of logical frames on the stack might also be a dynamic property. For
+example, an interpreter written in WebAssembly should be able to expose its
+interpreted language's activation frames.
+
 #### 2.2.2. Should support enumerating the logical inlined function invocations within a physical function
 
 What code ranges are due to an inlined function invocation? Note that a single
