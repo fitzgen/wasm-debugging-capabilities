@@ -8,4 +8,4 @@ install:
   - bikeshed update
 script:
   - bikeshed spec index.bs index.html
-  - git diff --exit-code -U8 spec.html
+  - git diff --exit-code -U8 index.html
