@@ -4,7 +4,7 @@ Shortname: wasm-debugging
 Level: 1
 Status: LS
 Group: WebAssembly Community Group
-URL: http://example.com/url-this-spec-will-live-at
+URL: https://fitzgen.github.io/wasm-debugging-capabilities/
 Editor: Nick Fitzgerald, Mozilla https://mozilla.org, fitzgen@mozilla.com, http://fitzgeraldnick.com
 Abstract: Capabilities for source-level debugging of generated WebAssembly code.
 Markup Shorthands: markdown yes
