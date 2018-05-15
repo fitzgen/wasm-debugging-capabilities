@@ -1,0 +1,11 @@
+sudo: false
+language: python
+python:
+  - "2.7"
+install:
+  - git clone https://github.com/tabatkins/bikeshed.git
+  - pip install --editable $PWD/bikeshed
+  - bikeshed update
+script:
+  - bikeshed spec index.bs index.html
+  - git diff --exit-code -U8 spec.html

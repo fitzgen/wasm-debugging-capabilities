@@ -1,0 +1,328 @@
+<pre class='metadata'>
+Title: WebAssembly Debugging Capabilities
+Shortname: wasm-debugging
+Level: 1
+Status: LS
+Group: WebAssembly Community Group
+URL: http://example.com/url-this-spec-will-live-at
+Editor: Nick Fitzgerald, Mozilla https://mozilla.org, fitzgen@mozilla.com, http://fitzgeraldnick.com
+Abstract: Capabilities for source-level debugging of generated WebAssembly code.
+Markup Shorthands: markdown yes
+</pre>
+
+Is this document missing something? [Send a pull request or open an issue on
+GitHub!](https://github.com/fitzgen/requirements-for-wasm-debugging-capabilitiies)
+
+# Motivation # {#motivation}
+
+WebAssembly is not typically written by-hand. A higher-level language—such as C,
+C++, C#, or Rust—is compiled into WebAssembly. Tools that operate on the emitted
+WebAssembly should present results their results in terms of the original source
+language, not the generated WebAssembly code.
+
+## Supported Tools ## {#supported-tools}
+
+Here is an incomplete list of the kinds tools that we expect to consume or
+manipulate debugging capabilities:
+
+: <dfn>Stepping debuggers</dfn>
+
+:: A stepping debugger allows users to step through their program's execution
+line-by-line (or expression-by-expression) in their original source
+language. [gdb](https://www.gnu.org/software/gdb/) is a popular stepping
+debugger, and most Web browser's developer tools also include a stepping
+debugger for JavaScript.
+
+: <dfn>Logging consoles</dfn>
+
+:: Logging consoles collect and display messages logged by the program. These
+messages are not limited to simple strings; they may contain objects or even
+tables. Most Web browser's developer tools include a logging console.
+
+: <dfn>Time profilers</dfn>
+
+:: Time profilers analyze where a running program is spending its time. They
+help users improve their program's throughput or latency. They might be
+implemented by periodically sampling the running program's stack or by precisely
+tracing certain operations.
+
+: <dfn>Code size profilers</dfn>
+
+:: A code size profiler analyzes which source language functions and constructs
+are responsible for which portions of a binary. They help users produce small
+binaries. [Twiggy](https://github.com/rustwasm/twiggy) is a code size profiler
+for WebAssembly.
+
+: <dfn>Linkers and bundlers</dfn>
+
+:: Linkers and bundlers combine incomplete fragments of programs (object code)
+into a complete program. They typically compose debugging capabilities, rather
+than consume or generate them directly. Examples include
+[lld](http://lld.llvm.org/) and [webpack](https://webpack.js.org/).
+
+: <dfn>Static analysis tools</dfn>
+
+:: Static analysis tools analyze a program and report their results to
+developers without ever running it. For example, providing a conservative
+estimate about how deep the stack may grow, or visualizing why a compound type's
+size is so large.
+
+: <dfn>Instrumentation and rewriting tools</dfn>
+
+:: It can be useful to instrument binaries with extra instructions, or to
+completely rewrite blocks of code. For example,
+[binaryen](https://github.com/WebAssembly/binaryen) can instrument all memory
+accesses, helping users debug heap corruption, and
+[wasm-snip](https://github.com/fitzgen/wasm-snip) can replace a function's body
+with an `unreachable` instruction.
+
+This list is not exhaustive, but we hope it is representative.
+
+# Requirements # {#requirements}
+
+This section attempts, as much as possible, to avoid embedding assumptions about
+whether debugging capabilities are provided by parsing a static format (a la
+[DWARF](http://dwarfstd.org/)), via a programmatic interface (a la [language
+servers](https://github.com/Microsoft/language-server-protocol)), a combination
+of those two, or by something else entirely. Rather than proposing a particular
+solution, this is an attempt to enumerate the requirements and constraints that
+*any* solution must satisfy. Therefore, I use the term "debugging capability"
+rather than "debugging information" or "debugger server".
+
+Furthermore, I've categorized these requirements as "musts" or "shoulds". A
+"must" is a hard requirement for an MVP: generally something that is already
+supported by source maps, or is required *now* in order to support a "should"
+*later*. A "should" is something that is not a hard requirement for the MVP, but
+for which we have supporting use cases.
+
+## General Requirements ## {#general-requirements}
+
+### Must be future extensible ### {#future-extensible}
+
+So that we can ship incrementally, we need to be able to evolve the debugging
+capabilities over time, as we add functionality. For example, we might initially
+ship without support for describing packed struct types, but we must not
+preclude ourselves from ever supporting them.
+
+Note: The source map format is *not* future extensible. The number of
+variable-length quantities that each mapping contains is fixed, and adding more
+information to a mapping will only break old consumers of the format. On the
+other hand, JSON would be future-extensible, in that one could add new fields to
+an object for new debugging information. Old consumers should ignore fields they
+do not recognize, while new consumers leverage the new information. Of course,
+source maps used to be JSON-based, but moved to variable-length quantities to be
+more [compact on disk and over the network](#compact-on-disk).
+
+### Must be embedder agnostic ### {#embedder-agnostic}
+
+The debugging capabilities must not be specific to any single kind of embedder
+or domain. For example, the debugging capabilities must not assume that the
+embedder is a Web browser.
+
+### Must be queryable without running the debuggee program ### {#debuggee-not-running}
+
+For example, a CLI code size profiler must be able to consume information about
+inlined functions or generic function monomorphization without running the
+debuggee program. A static analysis tool that never runs its input program must
+be able to report its results in terms of source locations. A linker or bundler
+that is composing two wasm object files must not have to run the incomplete
+programs contained in the object files in order to merge their debugging
+capabilities.
+
+### Must be embeddable within the WebAssembly ### {#embeddable-in-wasm}
+
+For ease of development, the debugging capabilities must be embeddable within a
+custom section or sections of the debuggee program's `.wasm` binary. This avoids
+wrangling multiple files and associated issues like moving one file but not the
+other and breaking relative references between them.
+
+It is common to embed source maps as a data URL within `//# sourceMappingURL`
+pragmas by base64 encoding them.
+
+### Must be separable from the WebAssembly ### {#separable-from-wasm}
+
+On the other hand, you most certainly do not want to include the debugging
+capabilities within the `.wasm` binary you ship in production because of size
+concerns and the associated network costs. But bugs happen in production, and
+you might want to use a stepping debugger with your live production code base,
+or apply debugging information to stack traces captured via telemetry and then
+processed offline, a la [Sentry](https://sentry.io/welcome/).
+
+### Must be compact on disk and over the network ### {#compact-on-disk}
+
+There is so much information that a tool might query for, on the order of the
+debuggee program itself. Much of this information is regular and
+repetitious. Source maps encode only a fraction of the information that we
+ultimately want to support queries for, and they are regularly many megabytes in
+size. The current source map specification is in its third revision, and each
+revision has focused on making the format more dense. Empirically, relying on
+general compression algorithms has not been enough.
+
+### Should be compact in memory ### {#compact-in-memory}
+
+Ideally only portions of the debugging capabilities are necessary to load in
+memory at any given time. E.g. if the debuggee program consisted of multiple
+linked compilation units, then a debugger should only need to initially load the
+capabilities for the current function's compilation unit. Answering a single
+query (e.g. finding the original source location for a generated code location)
+should not require loading the full debugging capabilities for the whole
+debuggee program.
+
+### Should be fast to consume, generate, and manipulate ### {#fast-to-manipulate}
+
+A fast tool provides a better user experience than a slow tool.
+
+For example, a linker would ideally not need to eagerly apply relocs within the
+debugging capabilities. Instead, the debugging capabilities consumers or
+debugging capabilities themselves would lazily apply relocs when a particular
+query forces it. The indexed variant of source maps provides similar lazy-reloc
+functionality.
+
+## Required Capabilities ## {#required-capabilities}
+
+### Locations ### {#locations}
+
+#### Must support querying the original source location for a given generated code location #### {#source-to-code}
+
+This is a common query. A trap is raised in the debuggee program and a stepping
+debugger would like to know in which source location it should place its
+cursor. A static analysis tool found something interesting at some location in
+the generated code, and would like to present this to its user in terms of the
+original source location. A profiler would like to express its sampled stack
+trace in terms of original source locations.
+
+#### Must support querying the generated code location(s) for a given original source location #### {#code-to-source}
+
+Another common query. A user sets a breakpoint on some original source line, and
+the debugger must use the debugging capabilities to translate that into a set of
+generated code locations that it should pause execution upon reaching. An
+instrumentation tool that inserts tracepoints or logging at some original source
+location would translate the input source location into a generated code
+location where it should insert new instructions.
+
+#### Must support enumerating all bidirectional mappings between original source and generated code locations #### {#enumerate-location-mappings}
+
+Firefox's stepping debugger will enumerate all mappings to determine the set of
+lines in the original source files that can have breakpoints set on them, and
+highlight this information in the UI. Since pretty much every generated code
+location ends up needing to be relocated when bundling JavaScript files,
+bundlers will enumerate every mapping and apply relocs directly, rather than
+maintaining a side table for these relocs.
+
+### Source Text ### {#source-text}
+
+#### Must support embedding original source text #### {#embedding-source-text}
+
+TODO
+
+#### Must support referencing external source text #### {#external-source-text}
+
+TODO
+
+### Inlined Functions ### {#inlined-functions}
+
+#### Should support querying the inline function frames that are logically on the stack at some generated code location #### {#query-for-inlined}
+
+A sampling profiler should augment its sampled stack of physical frames with the
+logical frames that were inlined. JavaScript profilers will do this today with
+the help of the JavaScript engine, rather than using debugging capabilities.
+
+The set of logical frames on the stack might also be a dynamic property. For
+example, an interpreter written in WebAssembly should be able to expose its
+interpreted language's activation frames.
+
+#### Should support enumerating the logical inlined function invocations within a physical function #### {#enumerate-all-inlined}
+
+What code ranges are due to an inlined function invocation? Note that a single
+inlined function invocation may be spread across multiple, distinct ranges due
+to code motion by the compiler.
+
+Code size profilers want to find large functions that are getting aggressively
+inlined many times, and might be causing size bloat.
+
+### Types ### {#types}
+
+#### Should support describing scalar types #### {#scalar-types}
+
+Examples include signed and unsigned integers, floats, booleans, etc. What is
+the name of the type? What is the type's size and alignment? These things are of
+particular importance to stepping debuggers and anything that wishes to
+understand a value in a running program's live memory.
+
+#### Should support describing compound types #### {#compound-types}
+
+Examples include pointers, arrays, structs, packed structs, structs with
+bitfields, C-style enums, C-style untagged unions, Rust-style tagged unions,
+etc. What is the name of the type? At what bit or byte offset is each member
+field?
+
+In addition to stepping debuggers, this information is also useful to tools that
+are not actually running the debuggee program, like
+[`ddbug`](https://github.com/gimli-rs/ddbug), which lets you inspect the sizes
+and layouts of a program's types, so you can optimize their representation.
+
+#### Should support type-based pretty printing #### {#pretty-printing}
+
+A stepping debugger or logging console should be able to pretty print values
+based on each value's type. For example, a string might be represented as a
+pointer and length pair, but should be displayed as its characters.
+
+### Scopes and Bindings ### {#scopes-and-bindings}
+
+#### Should support querying for the scope chain at a given generated code location #### {#query-scope-chain}
+
+When a stepping debugger pauses at a location, it should display the scopes it
+is paused within.
+
+#### Should support enumerating all bindings within a scope #### {#bindings-within-a-scope}
+
+When a stepping debugger is paused, it should display the bindings within each
+scope it is paused within. Is the bindings a formal parameter? A local variable?
+Is it a mutable or constant binding?
+
+#### Should support querying a binding's type #### {#type-of-binding}
+
+When a stepping debugger is paused, for each binding that is in scope, it should
+be able to display the binding's type.
+
+#### Should support describing a method to find the location of or reconstruct a binding's value #### {#reconstruct-a-bindings-value}
+
+When a stepping debugger is paused, for each binding it displays, it should also
+display the binding's value.
+
+"Reconstruct" because a value might not live in a single contiguous region of
+memory or a single local. The compiler might have exploded it into its component
+parts and passed each part by value in different parameters. It might be on the
+stack during this bytecode range but in memory during that bytecode range within
+the same function.
+
+### Generic Functions and Monomorphizations ### {#generics-and-monomorphizations}
+
+#### Should support querying whether a function is a monomorphization of a generic function #### {#query-if-monomorphization-of-generic}
+
+A code size profiler should identify generic functions that have been
+monomorphized "too many" times and are leading to code bloat. They should be
+able to do this regardless if the function is inlined or not.
+
+# Specification # {#specification}
+
+TODO: after we have flushed out and agreed upon requirements.
+
+<pre class="biblio">
+{
+    "WebAssembly": {
+        "authors": [
+            "WebAssembly Community Group"
+        ],
+        "href": "https://webassembly.org",
+        "title": "WebAssembly Specification",
+        "status": "LS",
+        "publisher": "W3C",
+        "deliveredBy": [
+            "http://www.w3.org/html/wg/"
+        ]
+    }
+}
+</pre>
+
+[WebAssembly]: https://webassembly.org
