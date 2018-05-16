@@ -11,7 +11,7 @@ Markup Shorthands: markdown yes
 </pre>
 
 Is this document missing something? [Send a pull request or open an issue on
-GitHub!](https://github.com/fitzgen/requirements-for-wasm-debugging-capabilitiies)
+GitHub!](https://github.com/fitzgen/wasm-debugging-capabilities)
 
 # Motivation # {#motivation}
 
@@ -95,7 +95,7 @@ supported by source maps, or is required *now* in order to support a "should"
 *later*. A "should" is something that is not a hard requirement for the MVP, but
 for which we have supporting use cases.
 
-## General Requirements ## {#general-requirements}
+## General ## {#general-requirements}
 
 ### Must be future extensible ### {#future-extensible}
 
@@ -115,9 +115,10 @@ more [compact on disk and over the network](#compact-on-disk).
 
 ### Must be embedder agnostic ### {#embedder-agnostic}
 
-The debugging capabilities must not be specific to any single kind of embedder
-or domain. For example, the debugging capabilities must not assume that the
-embedder is a Web browser.
+WebAssembly is portable and embedder agnostic, and its debugging capabilities
+must be as well. The debugging capabilities must not be specific to any single
+kind of embedder or domain. For example, the debugging capabilities must not
+assume that the embedder is a Web browser.
 
 ### Must be queryable without running the debuggee program ### {#debuggee-not-running}
 
@@ -168,6 +169,15 @@ query (e.g. finding the original source location for a generated code location)
 should not require loading the full debugging capabilities for the whole
 debuggee program.
 
+Note: DWARF, for example, has various index sections that allow for accelerated
+access into other sections. Those other sections do not need to be loaded into
+memory, and one can use the index to find an offset and then read just the
+relevant bits. The `.debug_aranges` section allows a debugger to quickly find
+the compilation unit and associated data in the `.debug_info` section for a
+given address, without parsing and loading into memory all of the `.debug_info`
+section. See section 6.1 of [DWARF 5](http://dwarfstd.org/doc/DWARF5.pdf) for
+details.
+
 ### Should be fast to consume, generate, and manipulate ### {#fast-to-manipulate}
 
 A fast tool provides a better user experience than a slow tool.
@@ -178,11 +188,9 @@ debugging capabilities themselves would lazily apply relocs when a particular
 query forces it. The indexed variant of source maps provides similar lazy-reloc
 functionality.
 
-## Required Capabilities ## {#required-capabilities}
+## Locations ## {#locations}
 
-### Locations ### {#locations}
-
-#### Must support querying the original source location for a given generated code location #### {#source-to-code}
+### Must support querying the original source location for a given generated code location ### {#source-to-code}
 
 This is a common query. A trap is raised in the debuggee program and a stepping
 debugger would like to know in which source location it should place its
@@ -191,7 +199,7 @@ the generated code, and would like to present this to its user in terms of the
 original source location. A profiler would like to express its sampled stack
 trace in terms of original source locations.
 
-#### Must support querying the generated code location(s) for a given original source location #### {#code-to-source}
+### Must support querying the generated code location(s) for a given original source location ### {#code-to-source}
 
 Another common query. A user sets a breakpoint on some original source line, and
 the debugger must use the debugging capabilities to translate that into a set of
@@ -200,7 +208,7 @@ instrumentation tool that inserts tracepoints or logging at some original source
 location would translate the input source location into a generated code
 location where it should insert new instructions.
 
-#### Must support enumerating all bidirectional mappings between original source and generated code locations #### {#enumerate-location-mappings}
+### Must support enumerating all bidirectional mappings between original source and generated code locations ### {#enumerate-location-mappings}
 
 Firefox's stepping debugger will enumerate all mappings to determine the set of
 lines in the original source files that can have breakpoints set on them, and
@@ -209,9 +217,9 @@ location ends up needing to be relocated when bundling JavaScript files,
 bundlers will enumerate every mapping and apply relocs directly, rather than
 maintaining a side table for these relocs.
 
-### Source Text ### {#source-text}
+## Source Text ## {#source-text}
 
-#### Must support embedding the original source text #### {#embedding-source-text}
+### Must support embedding the original source text ### {#embedding-source-text}
 
 Moving a source file or a generated `.wasm` binary might break the link between
 the debugging capabilities and the source text, if the source text is
@@ -225,7 +233,7 @@ Note: this is not desirable for production or with larger projects, since it
 will inflate the size of the debugging capabilities and conflict with
 [[#compact-on-disk]].
 
-#### Must support referencing external source text #### {#external-source-text}
+### Must support referencing external source text ### {#external-source-text}
 
 For large projects, embedding the original source text within the debugging
 capabilities is not worth the trade off. There may be many megabytes of library
@@ -236,9 +244,9 @@ only to slow down the initial download of the debugging capabilities.
 Note: source maps support referencing external source text by URL on the Web,
 and (absolute or relative) file path on Node.js.
 
-### Inlined Functions ### {#inlined-functions}
+## Inlined Functions ## {#inlined-functions}
 
-#### Should support querying the inline function frames that are logically on the stack at some generated code location #### {#query-for-inlined}
+### Should support querying the inline function frames that are logically on the stack at some generated code location ### {#query-for-inlined}
 
 A sampling profiler should augment its sampled stack of physical frames with the
 logical frames that were inlined. JavaScript profilers will do this today with
@@ -248,7 +256,7 @@ The set of logical frames on the stack might also be a dynamic property. For
 example, an interpreter written in WebAssembly should be able to expose its
 interpreted language's activation frames.
 
-#### Should support enumerating the logical inlined function invocations within a physical function #### {#enumerate-all-inlined}
+### Should support enumerating the logical inlined function invocations within a physical function ### {#enumerate-all-inlined}
 
 What code ranges are due to an inlined function invocation? Note that a single
 inlined function invocation may be spread across multiple, distinct ranges due
@@ -257,16 +265,16 @@ to code motion by the compiler.
 Code size profilers want to find large functions that are getting aggressively
 inlined many times, and might be causing size bloat.
 
-### Types ### {#types}
+## Types ## {#types}
 
-#### Should support describing scalar types #### {#scalar-types}
+### Should support describing scalar types ### {#scalar-types}
 
 Examples include signed and unsigned integers, floats, booleans, etc. What is
 the name of the type? What is the type's size and alignment? These things are of
 particular importance to stepping debuggers and anything that wishes to
 understand a value in a running program's live memory.
 
-#### Should support describing compound types #### {#compound-types}
+### Should support describing compound types ### {#compound-types}
 
 Examples include pointers, arrays, structs, packed structs, structs with
 bitfields, C-style enums, C-style untagged unions, Rust-style tagged unions,
@@ -278,31 +286,31 @@ are not actually running the debuggee program, like
 [`ddbug`](https://github.com/gimli-rs/ddbug), which lets you inspect the sizes
 and layouts of a program's types, so you can optimize their representation.
 
-#### Should support type-based pretty printing #### {#pretty-printing}
+### Should support type-based pretty printing ### {#pretty-printing}
 
 A stepping debugger or logging console should be able to pretty print values
 based on each value's type. For example, a string might be represented as a
 pointer and length pair, but should be displayed as its characters.
 
-### Scopes and Bindings ### {#scopes-and-bindings}
+## Scopes and Bindings ## {#scopes-and-bindings}
 
-#### Should support querying for the scope chain at a given generated code location #### {#query-scope-chain}
+### Should support querying for the scope chain at a given generated code location ### {#query-scope-chain}
 
 When a stepping debugger pauses at a location, it should display the scopes it
 is paused within.
 
-#### Should support enumerating all bindings within a scope #### {#bindings-within-a-scope}
+### Should support enumerating all bindings within a scope ### {#bindings-within-a-scope}
 
 When a stepping debugger is paused, it should display the bindings within each
 scope it is paused within. Is the bindings a formal parameter? A local variable?
 Is it a mutable or constant binding?
 
-#### Should support querying a binding's type #### {#type-of-binding}
+### Should support querying a binding's type ### {#type-of-binding}
 
 When a stepping debugger is paused, for each binding that is in scope, it should
 be able to display the binding's type.
 
-#### Should support describing a method to find the location of or reconstruct a binding's value #### {#reconstruct-a-bindings-value}
+### Should support describing a method to find the location of or reconstruct a binding's value ### {#reconstruct-a-bindings-value}
 
 When a stepping debugger is paused, for each binding it displays, it should also
 display the binding's value.
@@ -313,9 +321,9 @@ parts and passed each part by value in different parameters. It might be on the
 stack during this bytecode range but in memory during that bytecode range within
 the same function.
 
-### Generic Functions and Monomorphizations ### {#generics-and-monomorphizations}
+## Generic Functions and Monomorphizations ## {#generics-and-monomorphizations}
 
-#### Should support querying whether a function is a monomorphization of a generic function #### {#query-if-monomorphization-of-generic}
+### Should support querying whether a function is a monomorphization of a generic function ### {#query-if-monomorphization-of-generic}
 
 A code size profiler should identify generic functions that have been
 monomorphized "too many" times and are leading to code bloat. They should be
