@@ -1213,7 +1213,7 @@ Possible extra rowspan handling
 </style>
   <meta content="Bikeshed version cd1a06ca89dbf0a591f5237cfc14342976dba0ad" name="generator">
   <link href="https://fitzgen.github.io/wasm-debugging-capabilities/" rel="canonical">
-  <meta content="5fd17db6563a5b08145c2eb6bfe36127207e4636" name="document-revision">
+  <meta content="1e3c690447263206334b5d81960d4b1c315ae7d2" name="document-revision">
 <style>/* style-md-lists */
 
 /* This is a weird hack for me not yet following the commonmark spec
@@ -1365,7 +1365,7 @@ pre .property::before, pre .property::after {
   <div class="head">
    <p data-fill-with="logo"></p>
    <h1 class="p-name no-ref" id="title">WebAssembly Debugging Capabilities</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Living Standard, <time class="dt-updated" datetime="2018-05-15">15 May 2018</time></span></h2>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Living Standard, <time class="dt-updated" datetime="2018-05-16">16 May 2018</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -1379,7 +1379,7 @@ pre .property::before, pre .property::after {
    <div data-fill-with="warning"></div>
    <p class="copyright" data-fill-with="copyright"><a href="http://creativecommons.org/publicdomain/zero/1.0/" rel="license"><img alt="CC0" src="https://licensebuttons.net/p/zero/1.0/80x15.png"></a> To the extent possible under law, the editors have waived all copyright
 and related or neighboring rights to this work.
-In addition, as of 15 May 2018,
+In addition, as of 16 May 2018,
 the editors have made this specification available under the <a href="http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0" rel="license">Open Web Foundation Agreement Version 1.0</a>,
 which is available at http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
 Parts of this work may be from another specification document.  If so, those parts are instead covered by the license of that specification document. </p>
@@ -1426,7 +1426,7 @@ Parts of this work may be from another specification document.  If so, those par
         <li>
          <a href="#source-text"><span class="secno">2.2.2</span> <span class="content">Source Text</span></a>
          <ol class="toc">
-          <li><a href="#embedding-source-text"><span class="secno">2.2.2.1</span> <span class="content">Must support embedding original source text</span></a>
+          <li><a href="#embedding-source-text"><span class="secno">2.2.2.1</span> <span class="content">Must support embedding the original source text</span></a>
           <li><a href="#external-source-text"><span class="secno">2.2.2.2</span> <span class="content">Must support referencing external source text</span></a>
          </ol>
         <li>
@@ -1623,10 +1623,23 @@ location ends up needing to be relocated when bundling JavaScript files,
 bundlers will enumerate every mapping and apply relocs directly, rather than
 maintaining a side table for these relocs.</p>
    <h4 class="heading settled" data-level="2.2.2" id="source-text"><span class="secno">2.2.2. </span><span class="content">Source Text</span><a class="self-link" href="#source-text"></a></h4>
-   <h5 class="heading settled" data-level="2.2.2.1" id="embedding-source-text"><span class="secno">2.2.2.1. </span><span class="content">Must support embedding original source text</span><a class="self-link" href="#embedding-source-text"></a></h5>
-   <p>TODO</p>
+   <h5 class="heading settled" data-level="2.2.2.1" id="embedding-source-text"><span class="secno">2.2.2.1. </span><span class="content">Must support embedding the original source text</span><a class="self-link" href="#embedding-source-text"></a></h5>
+   <p>Moving a source file or a generated <code>.wasm</code> binary might break the link between
+the debugging capabilities and the source text, if the source text is
+external. For ease of development, the debugging capabilities must support
+embedding the source text within itself to render this scenario impossible.</p>
+   <p class="note" role="note"><span>Note:</span> source maps support embedding the original source text into the source map
+itself with the <code>"sourceContents"</code> JSON field.</p>
+   <p class="note" role="note"><span>Note:</span> this is not desirable for production or with larger projects, since it
+will inflate the size of the debugging capabilities and conflict with <a href="#compact-on-disk">§2.1.6 Must be compact on disk and over the network</a>.</p>
    <h5 class="heading settled" data-level="2.2.2.2" id="external-source-text"><span class="secno">2.2.2.2. </span><span class="content">Must support referencing external source text</span><a class="self-link" href="#external-source-text"></a></h5>
-   <p>TODO</p>
+   <p>For large projects, embedding the original source text within the debugging
+capabilities is not worth the trade off. There may be many megabytes of library
+source text that the user will not view, because they are (for example) stepping
+in their business logic code. In this scenario, that library source text serves
+only to slow down the initial download of the debugging capabilities.</p>
+   <p class="note" role="note"><span>Note:</span> source maps support referencing external source text by URL on the Web,
+and (absolute or relative) file path on Node.js.</p>
    <h4 class="heading settled" data-level="2.2.3" id="inlined-functions"><span class="secno">2.2.3. </span><span class="content">Inlined Functions</span><a class="self-link" href="#inlined-functions"></a></h4>
    <h5 class="heading settled" data-level="2.2.3.1" id="query-for-inlined"><span class="secno">2.2.3.1. </span><span class="content">Should support querying the inline function frames that are logically on the stack at some generated code location</span><a class="self-link" href="#query-for-inlined"></a></h5>
    <p>A sampling profiler should augment its sampled stack of physical frames with the
@@ -1686,7 +1699,6 @@ monomorphized "too many" times and are leading to code bloat. They should be
 able to do this regardless if the function is inlined or not.</p>
    <h2 class="heading settled" data-level="3" id="specification"><span class="secno">3. </span><span class="content">Specification</span><a class="self-link" href="#specification"></a></h2>
    <p>TODO: after we have flushed out and agreed upon requirements.</p>
-   <p>[WebAssembly]: https://webassembly.org</p>
   </main>
   <div data-fill-with="conformance">
    <h2 class="no-ref no-num heading settled" id="conformance"><span class="content"> Conformance</span><a class="self-link" href="#conformance"></a></h2>

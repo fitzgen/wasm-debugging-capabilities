@@ -211,13 +211,30 @@ maintaining a side table for these relocs.
 
 ### Source Text ### {#source-text}
 
-#### Must support embedding original source text #### {#embedding-source-text}
+#### Must support embedding the original source text #### {#embedding-source-text}
 
-TODO
+Moving a source file or a generated `.wasm` binary might break the link between
+the debugging capabilities and the source text, if the source text is
+external. For ease of development, the debugging capabilities must support
+embedding the source text within itself to render this scenario impossible.
+
+Note: source maps support embedding the original source text into the source map
+itself with the `"sourceContents"` JSON field.
+
+Note: this is not desirable for production or with larger projects, since it
+will inflate the size of the debugging capabilities and conflict with
+[[#compact-on-disk]].
 
 #### Must support referencing external source text #### {#external-source-text}
 
-TODO
+For large projects, embedding the original source text within the debugging
+capabilities is not worth the trade off. There may be many megabytes of library
+source text that the user will not view, because they are (for example) stepping
+in their business logic code. In this scenario, that library source text serves
+only to slow down the initial download of the debugging capabilities.
+
+Note: source maps support referencing external source text by URL on the Web,
+and (absolute or relative) file path on Node.js.
 
 ### Inlined Functions ### {#inlined-functions}
 
@@ -324,5 +341,3 @@ TODO: after we have flushed out and agreed upon requirements.
     }
 }
 </pre>
-
-[WebAssembly]: https://webassembly.org
