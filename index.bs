@@ -120,7 +120,13 @@ must be as well. The debugging capabilities must not be specific to any single
 kind of embedder or domain. For example, the debugging capabilities must not
 assume that the embedder is a Web browser.
 
-### Must be queryable without running the debuggee program ### {#debuggee-not-running}
+### Static properties must be queryable without running the debuggee program ### {#debuggee-not-running}
+
+Every query describes either a static or dynamic property of the debuggee
+program. What is a static property for one binary might be a dynamic property
+for another. The debugging capabilities must support querying both static and
+dynamic properties, and static properties must be queryable even when the
+debuggee program is not running.
 
 For example, a CLI code size profiler must be able to consume information about
 inlined functions or generic function monomorphization without running the
