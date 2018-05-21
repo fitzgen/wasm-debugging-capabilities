@@ -120,7 +120,7 @@ must be as well. The debugging capabilities must not be specific to any single
 kind of embedder or domain. For example, the debugging capabilities must not
 assume that the embedder is a Web browser.
 
-### Static properties must be queryable without running the debuggee program ### {#debuggee-not-running}
+### Must support querying static properties without running the debuggee program ### {#debuggee-not-running}
 
 Every query describes either a static or dynamic property of the debuggee
 program. What is a static property for one binary might be a dynamic property

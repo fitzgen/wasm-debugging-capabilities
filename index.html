@@ -1178,7 +1178,7 @@ Possible extra rowspan handling
 </style>
   <meta content="Bikeshed version 150b038a54cb926cf8e3d36fd8b108c226cb94b8" name="generator">
   <link href="https://fitzgen.github.io/wasm-debugging-capabilities/" rel="canonical">
-  <meta content="88ad58d5905895e28bc1276b90964bb51323d998" name="document-revision">
+  <meta content="68693d3892e434ee0cc7219b24b4d43e01c54ce9" name="document-revision">
 <style>/* style-md-lists */
 
 /* This is a weird hack for me not yet following the commonmark spec
@@ -1369,12 +1369,13 @@ Parts of this work may be from another specification document.  If so, those par
        <ol class="toc">
         <li><a href="#future-extensible"><span class="secno">2.1.1</span> <span class="content">Must be future extensible</span></a>
         <li><a href="#embedder-agnostic"><span class="secno">2.1.2</span> <span class="content">Must be embedder agnostic</span></a>
-        <li><a href="#debuggee-not-running"><span class="secno">2.1.3</span> <span class="content">Static properties must be queryable without running the debuggee program</span></a>
+        <li><a href="#debuggee-not-running"><span class="secno">2.1.3</span> <span class="content">Must support querying static properties without running the debuggee program</span></a>
         <li><a href="#embeddable-in-wasm"><span class="secno">2.1.4</span> <span class="content">Must be embeddable within the WebAssembly</span></a>
         <li><a href="#separable-from-wasm"><span class="secno">2.1.5</span> <span class="content">Must be separable from the WebAssembly</span></a>
         <li><a href="#compact-on-disk"><span class="secno">2.1.6</span> <span class="content">Must be compact on disk and over the network</span></a>
         <li><a href="#compact-in-memory"><span class="secno">2.1.7</span> <span class="content">Should be compact in memory</span></a>
         <li><a href="#fast-to-manipulate"><span class="secno">2.1.8</span> <span class="content">Should be fast to consume, generate, and manipulate</span></a>
+        <li><a href="#interpreters"><span class="secno">2.1.9</span> <span class="content">Should support interpreted debuggees, where the interpreter is written in Wasm</span></a>
        </ol>
       <li>
        <a href="#locations"><span class="secno">2.2</span> <span class="content">Locations</span></a>
@@ -1515,7 +1516,7 @@ more <a href="#compact-on-disk">compact on disk and over the network</a>.</p>
 must be as well. The debugging capabilities must not be specific to any single
 kind of embedder or domain. For example, the debugging capabilities must not
 assume that the embedder is a Web browser.</p>
-   <h4 class="heading settled" data-level="2.1.3" id="debuggee-not-running"><span class="secno">2.1.3. </span><span class="content">Static properties must be queryable without running the debuggee program</span><a class="self-link" href="#debuggee-not-running"></a></h4>
+   <h4 class="heading settled" data-level="2.1.3" id="debuggee-not-running"><span class="secno">2.1.3. </span><span class="content">Must support querying static properties without running the debuggee program</span><a class="self-link" href="#debuggee-not-running"></a></h4>
    <p>Every query describes either a static or dynamic property of the debuggee
 program. What is a static property for one binary might be a dynamic property
 for another. The debugging capabilities must support querying both static and
@@ -1571,6 +1572,32 @@ debugging capabilities. Instead, the debugging capabilities consumers or
 debugging capabilities themselves would lazily apply relocs when a particular
 query forces it. The indexed variant of source maps provides similar lazy-reloc
 functionality.</p>
+   <h4 class="heading settled" data-level="2.1.9" id="interpreters"><span class="secno">2.1.9. </span><span class="content">Should support interpreted debuggees, where the interpreter is written in Wasm</span><a class="self-link" href="#interpreters"></a></h4>
+   <p>With interpreted debuggees, there are nearly zero static properties of the
+debuggee that are reflected in the wasm itself. Instead of being the debuggee
+program, the wasm is interpreting yet another language in which the debuggee
+program is authored. This has profound impacts on the way that tools, debugging
+capabilities, and the debuggee program interact:</p>
+   <ul>
+    <li data-md="">
+     <p>For a stepping debugger to set a breakpoint, it cannot simply translate source
+  locations into a set of wasm bytecode offsets and use an engine-specific API
+  to pause when those bytecodes are executed. There are no wasm bytecodes that
+  directly correspond to a given source location. We could be paused at the same
+  wasm bytecode multiple different times and logically be paused in multiple
+  different source locations. The interpreter’s cooperation is necessary to set
+  a breakpoint, since it is the only entity that knows what source location is
+  executing at any given time.</p>
+    <li data-md="">
+     <p>For a sampling profiler to capture a stack, it cannot simply save the wasm
+  functions and their bytecode offsets on the stack, and symbolicate and expand
+  inlined functions offline. In fact, the active wasm functions have almost no
+  correlation with the active interpreted debuggee functions. Only the
+  interpreter itself knows which interpreted debuggee functions are active, and
+  therefore its cooperation is required to correctly sample the stack.</p>
+    <li data-md="">
+     <p>Etc.</p>
+   </ul>
    <h3 class="heading settled" data-level="2.2" id="locations"><span class="secno">2.2. </span><span class="content">Locations</span><a class="self-link" href="#locations"></a></h3>
    <h4 class="heading settled" data-level="2.2.1" id="source-to-code"><span class="secno">2.2.1. </span><span class="content">Must support querying the original source location for a given generated code location</span><a class="self-link" href="#source-to-code"></a></h4>
    <p>This is a common query. A trap is raised in the debuggee program and a stepping
