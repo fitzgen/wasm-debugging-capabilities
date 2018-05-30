@@ -120,7 +120,7 @@ must be as well. The debugging capabilities must not be specific to any single
 kind of embedder or domain. For example, the debugging capabilities must not
 assume that the embedder is a Web browser.
 
-### Static properties must be queryable without running the debuggee program ### {#debuggee-not-running}
+### Must support querying static properties without running the debuggee program ### {#debuggee-not-running}
 
 Every query describes either a static or dynamic property of the debuggee
 program. What is a static property for one binary might be a dynamic property
@@ -193,6 +193,32 @@ debugging capabilities. Instead, the debugging capabilities consumers or
 debugging capabilities themselves would lazily apply relocs when a particular
 query forces it. The indexed variant of source maps provides similar lazy-reloc
 functionality.
+
+### Should support interpreted debuggees, where the interpreter is written in Wasm ### {#interpreters}
+
+With interpreted debuggees, there are nearly zero static properties of the
+debuggee that are reflected in the wasm itself. Instead of being the debuggee
+program, the wasm is interpreting yet another language in which the debuggee
+program is authored. This has profound impacts on the way that tools, debugging
+capabilities, and the debuggee program interact:
+
+* For a stepping debugger to set a breakpoint, it cannot simply translate source
+  locations into a set of wasm bytecode offsets and use an engine-specific API
+  to pause when those bytecodes are executed. There are no wasm bytecodes that
+  directly correspond to a given source location. We could be paused at the same
+  wasm bytecode multiple different times and logically be paused in multiple
+  different source locations. The interpreter's cooperation is necessary to set
+  a breakpoint, since it is the only entity that knows what source location is
+  executing at any given time.
+
+* For a sampling profiler to capture a stack, it cannot simply save the wasm
+  functions and their bytecode offsets on the stack, and symbolicate and expand
+  inlined functions offline. In fact, the active wasm functions have almost no
+  correlation with the active interpreted debuggee functions. Only the
+  interpreter itself knows which interpreted debuggee functions are active, and
+  therefore its cooperation is required to correctly sample the stack.
+
+* Etc.
 
 ## Locations ## {#locations}
 
